@@ -1,0 +1,61 @@
+- name: Install Airflow 
+  hosts: all
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    AIRFLOW_HOME
+    python_version: 3.7
+    airflow_version: 2.0.1
+    constraint_url: "https://raw.githubusercontent.com/apache/airflow/constraints-{{ airflow_version }}/constraints-{{ python_version }}.txt"
+    admin_user:
+      first_name: james
+      last_name: haughey
+      email: mail@jameshaughey.dev
+      password: houses
+    system_vars:
+      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64/jre
+    hadoop_vars:
+      HADOOP_HOME: /usr/local/hadoop-3.3.0
+      PATH: $PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+    node_ips:
+      node-master: "{{ controller_ip }}"
+      node-1: "{{ node1_ip }}"
+      node-2: "{{ node2_ip }}"
+    hadoop_users:
+      - hadoop
+      - hdfs
+      - yarn
+      - mapred
+
+  tasks:
+    # create Airflow user
+    # Add key for airflow user
+    - name: Install packages
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+        state: latest
+        name:
+          - unzip
+          - tar
+          - python3
+          - python3-venv
+          - python3-pip
+
+    - name: Upgrade Pip
+      pip:
+        name: pip
+        extra_args: --upgrade
+    # TODO Create airflow directory
+    # TODO chown airflow directory
+    - name: Install Airflow
+      pip:
+        name: "apache-airflow=={{ airflow_version }}"
+        extra_args: "--constraint \"{{ constraint_url }}\""
+
+# Setup Airflow 
+    - name: Init DB
+      command: "airflow db init"
+
+    - name: Create Admin user
+      command: "airflow users create --username admin --firstname {{ admin_user.first_name }} --lastname {{ admin_user.last_name }} --email {{ admin_user.email}} --role Admin --password {{ admin_user.password }}"
